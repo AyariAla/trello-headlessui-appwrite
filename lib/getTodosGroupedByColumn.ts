@@ -1,4 +1,4 @@
-import { databases } from '@/components/appwrite';
+import { databases } from '@/appwrite';
 
 export const getTodosGroupedByColumn = async () => {
   const data = await databases.listDocuments(
@@ -15,7 +15,7 @@ export const getTodosGroupedByColumn = async () => {
       });
     }
     acc.get(todo.status)!.todos.push({
-      $id: todo.id,
+      $id: todo.$id,
       $createdAt: todo.$createdAt,
       title: todo.title,
       status: todo.status,
