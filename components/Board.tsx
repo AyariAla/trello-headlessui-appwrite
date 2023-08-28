@@ -7,15 +7,17 @@ import Column from '@/components/Column';
 
 const Board = () => {
   // const getBoard = useBoardStore((state) => state.getBoard);
-  const [getBoard, board, setBoardState] = useBoardStore((state) => [
-    state.getBoard,
-    state.board,
-    state.setBoardState,
-  ]);
+  const [getBoard, board, setBoardState, updateTodoInDb] = useBoardStore(
+    (state) => [
+      state.getBoard,
+      state.board,
+      state.setBoardState,
+      state.updateTodoInDb,
+    ]
+  );
 
   useEffect(() => {
     getBoard();
-    // console.log(board);
   }, [getBoard]);
 
   const handOnDragEnd = (result: DropResult) => {
@@ -23,7 +25,9 @@ const Board = () => {
 
     // Check if dropped outside board
     if (!destination) return;
-    // Handle column drag
+    //#################################################
+    // Column dragging
+    //#################################################
     if (type === 'column') {
       const entries = Array.from(board.columns.entries());
       //getting the dropped element from the board
@@ -35,7 +39,67 @@ const Board = () => {
 
       setBoardState({ ...board, columns: rearrangedColumns });
     }
-    if (type === 'card') {
+    //#################################################
+    // Card dragging
+    //#################################################
+
+    // Since indexes as stored as numbers instead of id's with DND library
+    const columns = Array.from(board.columns);
+    const startColIndex = columns[Number(source.droppableId)];
+    const finishColIndex = columns[Number(destination.droppableId)];
+
+    const startCol: Column = {
+      id: startColIndex[0],
+      todos: startColIndex[1].todos,
+    };
+    const finishCol: Column = {
+      id: finishColIndex[0],
+      todos: finishColIndex[1].todos,
+    };
+    if (!startCol || !finishCol) return;
+
+    if (source.index === destination.index && startCol === finishCol) return;
+
+    const newTodos = startCol.todos;
+
+    const [todoMoved] = newTodos.splice(source.index, 1);
+    // id === inprogress done todo
+    if (startCol.id === finishCol.id) {
+      // Same col task drag
+      newTodos.splice(destination.index, 0, todoMoved);
+
+      const newCol = {
+        id: startCol.id,
+        todos: newTodos,
+      };
+      // Immutable pattern to avoid changing the object directly
+      const newColumns = new Map(board.columns);
+      newColumns.set(startCol.id, newCol);
+      setBoardState({ ...board, columns: newColumns });
+    } else {
+      // Dragging to different col
+      const finishTodos = Array.from(finishCol.todos);
+      //  Moving dragged item in destination
+      finishTodos.splice(destination.index, 0, todoMoved);
+
+      const newColumns = new Map(board.columns);
+      const newCol = {
+        id: startCol.id,
+        todos: newTodos,
+      };
+      newColumns.set(startCol.id, newCol);
+      newColumns.set(finishCol.id, {
+        id: finishCol.id,
+        todos: finishTodos,
+      });
+      // Update DB
+      updateTodoInDb(todoMoved, finishCol.id);
+      setBoardState({ ...board, columns: newColumns });
+
+      // // Deleting dragged item froms startCol
+      // const startTodos = Array.from(startCol.todos);
+      // finishTodos.splice(source.index, 0);
+      // console.log('finishTodos', finishTodos);
     }
   };
   return (
