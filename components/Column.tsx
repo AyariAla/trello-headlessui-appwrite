@@ -42,7 +42,14 @@ const Column = ({ id, todos, index }: Props) => {
                 <h2 className='flex justify-between font-bold text-xl p-2'>
                   {idToColumnText[id]}
                   <span className='text-gray-500 bg-gray-200 rounded-full px-2 py-1 text-sm font-normal'>
-                    {todos.length}
+                    {/* Keeping track of column count while searching */}
+                    {!searchString
+                      ? todos.length
+                      : todos.filter((todo) =>
+                          todo.title
+                            .toLowerCase()
+                            .includes(searchString.toLowerCase())
+                        ).length}
                   </span>
                 </h2>
                 <div className='space-y-2 '>
